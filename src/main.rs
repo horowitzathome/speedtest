@@ -1,5 +1,5 @@
-mod client_bd;
-mod server_bd;
+mod client;
+mod server;
 mod utils;
 
 use clap::{Parser, Subcommand, ValueEnum};
@@ -60,7 +60,7 @@ async fn main() {
         duration_secs: 10,
     }) {
         Command::Server { port, block_size_kb, duration_secs } => {
-            server_bd::run_server(port, block_size_kb, duration_secs).await;
+            server::run_server(port, block_size_kb, duration_secs).await;
         }
         Command::Client {
             address,
@@ -69,7 +69,7 @@ async fn main() {
             duration_secs,
             direction,
         } => {
-            client_bd::run_client(address, threads, block_size_kb, duration_secs, direction).await;
+            client::run_client(address, threads, block_size_kb, duration_secs, direction).await;
         }
     }
 }
