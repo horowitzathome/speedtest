@@ -1,12 +1,39 @@
 use crate::{
     Direction,
-    utils::print_statistics,
+    file::{read_test_file, write_test_file},
+    utils::{generate_test_sizes, print_statistics},
 };
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::time::{Duration, Instant};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    time::sleep,
+};
+
+pub async fn run_client_loop(address: String, threads: usize, block_size_kb: usize, duration_secs: u64, path: &str, file_size_mb: usize) {
+    loop {
+        // First do HTTP test with download and upload
+        run_client(address.clone(), threads, block_size_kb, duration_secs, Direction::Download).await;
+        sleep(Duration::from_secs(1)).await;
+        run_client(address.clone(), threads, block_size_kb, duration_secs, Direction::Upload).await;
+        sleep(Duration::from_secs(1)).await;
+
+        // Then do file write and read test
+        let sizes = generate_test_sizes(file_size_mb);
+
+        for size in sizes {
+            // First write file
+            let duration_res = write_test_file(path, size).await.unwrap();
+            print_statistics(duration_res.as_secs_f64(), size.try_into().unwrap(), Direction::Upload, 0, path);
+
+            // Now read file
+            let duration_res = read_test_file(path).await.unwrap();
+            print_statistics(duration_res.as_secs_f64(), size.try_into().unwrap(), Direction::Download, 0, path);
+        }
+    }
+}
 
 pub async fn run_client(address: String, threads: usize, block_size_kb: usize, duration_secs: u64, direction: Direction) {
     println!("Connecting to {} with {} async tasks in '{:?}' mode", address, threads, direction);
@@ -70,7 +97,7 @@ pub async fn run_client(address: String, threads: usize, block_size_kb: usize, d
                         }
                     }
                 }
-                Direction::Quit => { /* Do nothing */ }
+                Direction::Quit => { /* Do nothing, is for server only */ }
             }
 
             bytes.fetch_add(count, Ordering::Relaxed);
@@ -88,5 +115,5 @@ pub async fn run_client(address: String, threads: usize, block_size_kb: usize, d
 
     println!("\n[ERGEBNIS]");
     println!("Richtung: {:?}", direction);
-    print_statistics(duration, total);
+    print_statistics(duration, total, direction, block_size_kb, &address);
 }

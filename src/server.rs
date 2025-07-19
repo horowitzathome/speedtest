@@ -8,8 +8,7 @@ use tokio::sync::Mutex;
 use tokio::time::Duration;
 
 use crate::{
-    Direction,
-    utils::{format_number, print_statistics},
+    utils::{format_number, print_statistics_terminal}, Direction
 };
 
 pub async fn run_server(port: u16, block_size_kb: usize, default_duration_secs: u64) {
@@ -140,5 +139,5 @@ pub async fn run_server(port: u16, block_size_kb: usize, default_duration_secs: 
     let duration = total_duration.lock().await.as_secs_f64();
 
     println!("\n[ERGEBNIS]");
-    print_statistics(duration, total);
+    print_statistics_terminal(duration, total);
 }

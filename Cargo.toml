@@ -7,3 +7,4 @@ edition = "2024"
 tokio = { version = "1", features = ["full"] }
 clap = { version = "4", features = ["derive"] }
 num-format = "0.4"
+chrono = "0.4"
