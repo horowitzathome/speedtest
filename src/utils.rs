@@ -7,7 +7,7 @@ use tokio::time::Instant;
 
 pub struct Statistics {
     pub duration: f64,
-    pub total_bytes: u64,
+    pub total_bytes: usize,
     pub total_mbytes: f64,
     pub total_mbits: f64,
     pub total_gbytes: f64,
@@ -22,7 +22,7 @@ pub struct Statistics {
     pub seconds: u64,
 }
 
-fn calculate_statistics(duration: f64, total_bytes: u64) -> Statistics {
+fn calculate_statistics(duration: f64, total_bytes: usize) -> Statistics {
     let total_mbytes = total_bytes as f64 / 1_000_000.0;
     let total_mbits = total_mbytes * 8.0;
     let total_gbytes = total_mbytes / 1_000.0;
@@ -120,12 +120,12 @@ fn write_statistics_csv(stats: &Statistics, direction: Direction, block_size_kb:
     writer.flush().expect("Failed to flush CSV writer");
 }
 
-pub fn print_statistics_terminal(duration: f64, total_bytes: u64) {
+pub fn print_statistics_terminal(duration: f64, total_bytes: usize) {
     let stats = calculate_statistics(duration, total_bytes);
     write_statistics_terminal(&stats);
 }
 
-pub fn print_statistics(duration: f64, total_bytes: u64, direction: Direction, block_size_kb: usize, remote_addr: &str) {
+pub fn print_statistics(duration: f64, total_bytes: usize, direction: Direction, block_size_kb: usize, remote_addr: &str) {
     let stats = calculate_statistics(duration, total_bytes);
     write_statistics_terminal(&stats);
     write_statistics_csv(&stats, direction, block_size_kb, remote_addr);

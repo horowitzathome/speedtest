@@ -1,6 +1,6 @@
 use num_format::Locale;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::Ordering;
+use std::sync::{Arc, atomic::AtomicUsize};
 use std::time::Instant;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
@@ -8,14 +8,15 @@ use tokio::sync::Mutex;
 use tokio::time::Duration;
 
 use crate::{
-    utils::{format_number, print_statistics_terminal}, Direction
+    Direction,
+    utils::{format_number, print_statistics_terminal},
 };
 
 pub async fn run_server(port: u16, block_size_kb: usize, default_duration_secs: u64) {
     let listener = TcpListener::bind(("0.0.0.0", port)).await.expect("Failed to bind");
     println!("Server listening on port {} ...", port);
 
-    let total_bytes = Arc::new(AtomicU64::new(0));
+    let total_bytes = Arc::new(AtomicUsize::new(0));
     let total_duration = Arc::new(Mutex::new(Duration::ZERO));
     let clients = Arc::new(Mutex::new(0usize));
     let (quit_tx, mut quit_rx) = tokio::sync::watch::channel(false);
@@ -77,7 +78,7 @@ pub async fn run_server(port: u16, block_size_kb: usize, default_duration_secs: 
                     let mut socket = reader.into_inner();
 
                     let mut buf = vec![0u8; block_size_kb * 1024];
-                    let mut local_bytes = 0u64;
+                    let mut local_bytes = 0;
                     let deadline = Instant::now() + Duration::from_secs(duration_secs);
                     let start = Instant::now();
 
@@ -85,22 +86,22 @@ pub async fn run_server(port: u16, block_size_kb: usize, default_duration_secs: 
                         Direction::Upload => {
                             while let Ok(n) = socket.read(&mut buf).await {
                                 if n == 0 { break; }
-                                local_bytes += n as u64;
+                                local_bytes += n;
                             }
                         }
                         Direction::Download => {
                             while Instant::now() < deadline {
                                 if socket.write_all(&buf).await.is_err() { break; }
-                                local_bytes += buf.len() as u64;
+                                local_bytes += buf.len();
                             }
                         }
                         Direction::Bidirectional => {
                             while Instant::now() < deadline {
                                 if socket.write_all(&buf).await.is_err() { break; }
-                                local_bytes += buf.len() as u64;
+                                local_bytes += buf.len();
                                 if let Ok(n) = socket.read(&mut buf).await {
                                     if n == 0 { break; }
-                                    local_bytes += n as u64;
+                                    local_bytes += n;
                                 }
                             }
                         }
